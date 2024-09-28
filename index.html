@@ -9,38 +9,38 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container my-5">
-        <h1 class="text-center mb-4">Rangsorolás készítő</h1>
+    <div class="container my-5 text-center">
+        <h1 class="mb-4">Rangsorolás készítő</h1>
 
-        <!-- Elembeszúró rész -->
-        <div class="row mb-3">
-            <div class="col-md-8">
+        <!-- Elem hozzáadása -->
+        <div class="row justify-content-center mb-3">
+            <div class="col-md-6">
                 <input type="text" id="itemInput" class="form-control" placeholder="Adj hozzá egy elemet...">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <button class="btn btn-primary w-100" onclick="addItem()">Elem hozzáadása</button>
             </div>
         </div>
 
         <!-- Kategória hozzáadás -->
-        <div class="row mb-4">
-            <div class="col-md-8">
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-6">
                 <input type="text" id="categoryInput" class="form-control" placeholder="Adj hozzá egy kategóriát...">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-2">
                 <button class="btn btn-success w-100" onclick="addCategory()">Kategória hozzáadása</button>
             </div>
         </div>
 
         <!-- Elemek listája -->
-        <div class="row mb-5">
-            <div class="col-12">
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-8">
                 <ul id="itemList" class="list-group"></ul>
             </div>
         </div>
 
         <!-- Kategóriák tartalma -->
-        <div id="categoriesContainer" class="row"></div>
+        <div id="categoriesContainer" class="d-flex justify-content-center flex-wrap"></div>
     </div>
 
     <!-- Bootstrap JS (Popper included) -->
