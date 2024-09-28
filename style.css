@@ -14,7 +14,6 @@ body {
 .category-box {
     width: 150px;
     height: 150px;
-    border: 3px solid transparent; /* Belső tartalom elválasztása */
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -22,6 +21,7 @@ body {
     margin: 20px;
     position: relative;
     transition: transform 0.3s;
+    border: 3px solid transparent;
 }
 
 .category-box:hover {
