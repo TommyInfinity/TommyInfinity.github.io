@@ -6,6 +6,7 @@ function addItem() {
 
     const list = document.getElementById("itemList");
     const listItem = document.createElement("li");
+    listItem.classList.add("list-group-item");
     listItem.textContent = newItem;
     listItem.setAttribute("draggable", "true");
     listItem.addEventListener("dragstart", dragStart);
@@ -23,8 +24,8 @@ function addCategory() {
 
     const categoriesContainer = document.getElementById("categoriesContainer");
     const categoryBox = document.createElement("div");
-    categoryBox.classList.add("category-box");
-    categoryBox.innerHTML = `<h2>${categoryName}</h2><ul></ul>`;
+    categoryBox.classList.add("col-md-4", "category-box");
+    categoryBox.innerHTML = `<h2>${categoryName}</h2><ul class="list-unstyled"></ul>`;
     categoryBox.addEventListener("dragover", dragOver);
     categoryBox.addEventListener("drop", drop);
 
