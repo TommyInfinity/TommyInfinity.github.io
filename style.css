@@ -10,17 +10,22 @@ body {
     cursor: grab;
 }
 
+/* Buborék stílus */
 .category-box {
     width: 150px;
     height: 150px;
-    border: 2px dashed #6c757d;
-    background-color: #f8f9fa;
+    border: 3px solid transparent; /* Belső tartalom elválasztása */
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 10px;
+    margin: 20px;
     position: relative;
+    transition: transform 0.3s;
+}
+
+.category-box:hover {
+    transform: scale(1.1);
 }
 
 .category-box h2 {
@@ -47,4 +52,19 @@ body {
     background-color: #dfe3e6;
     border-radius: 5px;
     margin-bottom: 5px;
+}
+
+/* Véletlenszerű színek a buborékoknak */
+.random-color-1 { background-color: #ff6b6b; }
+.random-color-2 { background-color: #6bc1ff; }
+.random-color-3 { background-color: #ffd56b; }
+.random-color-4 { background-color: #6bff7d; }
+.random-color-5 { background-color: #ab6bff; }
+.random-color-6 { background-color: #ff6be7; }
+
+/* Középre helyezés */
+#categoriesContainer {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
 }
