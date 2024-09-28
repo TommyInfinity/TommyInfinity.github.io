@@ -24,7 +24,7 @@ function addCategory() {
 
     const categoriesContainer = document.getElementById("categoriesContainer");
     const categoryBox = document.createElement("div");
-    categoryBox.classList.add("col-md-4", "category-box");
+    categoryBox.classList.add("category-box");
     categoryBox.innerHTML = `<h2>${categoryName}</h2><ul class="list-unstyled"></ul>`;
     categoryBox.addEventListener("dragover", dragOver);
     categoryBox.addEventListener("drop", drop);
