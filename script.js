@@ -1,3 +1,6 @@
+// Véletlenszerű színosztályok
+const colorClasses = ['random-color-1', 'random-color-2', 'random-color-3', 'random-color-4', 'random-color-5', 'random-color-6'];
+
 // Elem hozzáadása
 function addItem() {
     const input = document.getElementById("itemInput");
@@ -25,6 +28,11 @@ function addCategory() {
     const categoriesContainer = document.getElementById("categoriesContainer");
     const categoryBox = document.createElement("div");
     categoryBox.classList.add("category-box");
+
+    // Véletlenszerű szín hozzárendelése
+    const randomColorClass = colorClasses[Math.floor(Math.random() * colorClasses.length)];
+    categoryBox.classList.add(randomColorClass);
+
     categoryBox.innerHTML = `<h2>${categoryName}</h2><ul class="list-unstyled"></ul>`;
     categoryBox.addEventListener("dragover", dragOver);
     categoryBox.addEventListener("drop", drop);
