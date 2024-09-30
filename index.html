@@ -3,48 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rangsorolás készítő</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+    <title>Fejlett Tier Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow-y: auto;
+            height: 100vh;
+        }
+        #bg-canvas { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            z-index: -1; 
+            pointer-events: none;
+        }
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            padding-bottom: 2rem;
+        }
+        .drag-over { background-color: rgba(59, 130, 246, 0.5); transform: scale(1.05); }
+        .item { transition: all 0.3s ease; position: relative; }
+        .item:hover { transform: scale(1.05); }
+        .item .delete-btn { 
+            display: none; 
+            position: absolute; 
+            top: 0; 
+            right: 0; 
+            background: rgba(255, 0, 0, 0.5); 
+            color: white; 
+            padding: 2px 6px; 
+            cursor: pointer;
+        }
+        .item:hover .delete-btn { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        .tier-row { transition: all 0.3s ease; }
+        .tier-row:hover { transform: translateX(5px); }
+        .tier-row.dragging { opacity: 0.5; transform: scale(1.05); }
+        .tier-row.drag-above { margin-top: 2rem; }
+        .tier-row.drag-below { margin-bottom: 2rem; }
+        .tier-content { display: flex; flex-wrap: wrap; align-items: center; }
+    </style>
 </head>
-<body>
-    <div class="container my-5 text-center">
-        <h1 class="mb-4">Rangsorolás készítő</h1>
-
-        <!-- Elem hozzáadása -->
-        <div class="row justify-content-center mb-3">
-            <div class="col-md-6">
-                <input type="text" id="itemInput" class="form-control" placeholder="Adj hozzá egy elemet...">
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-primary w-100" onclick="addItem()">Elem hozzáadása</button>
-            </div>
-        </div>
-
-        <!-- Kategória hozzáadás -->
-        <div class="row justify-content-center mb-4">
-            <div class="col-md-6">
-                <input type="text" id="categoryInput" class="form-control" placeholder="Adj hozzá egy kategóriát...">
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-success w-100" onclick="addCategory()">Kategória hozzáadása</button>
+<body class="bg-black">
+    <canvas id="bg-canvas"></canvas>
+    <div class="content-wrapper">
+        <div class="container mx-auto p-4">
+            <h1 class="text-3xl font-bold mb-4 text-center text-white">Fejlett Tier Maker</h1>
+            <div id="items-container" class="flex flex-wrap mb-4 p-2 bg-white bg-opacity-20 rounded min-h-[50px] shadow-md" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <div id="tier-list" class="space-y-4"></div>
+            <div class="mt-4 flex justify-center">
+                <input id="tier-input" type="text" class="p-2 border rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Új tier neve">
+                <button id="add-tier-btn" class="bg-green-500 text-white p-2 rounded-r hover:bg-green-600 transition duration-300">Új Tier</button>
             </div>
         </div>
-
-        <!-- Elemek listája -->
-        <div class="row justify-content-center mb-5">
-            <div class="col-md-8">
-                <ul id="itemList" class="list-group"></ul>
-            </div>
-        </div>
-
-        <!-- Kategóriák tartalma -->
-        <div id="categoriesContainer" class="d-flex justify-content-center flex-wrap"></div>
     </div>
 
-    <!-- Bootstrap JS (Popper included) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
+    <script>
+        // Three.js háttér kód (változatlan)
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Csillagok létrehozása
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsMaterial = new THREE.PointsMaterial({
+            color: 0xFFFFFF,
+            size: 0.2,
+            transparent: true,
+            blending: THREE.AdditiveBlending
+        });
+
+        const starsVertices = [];
+        for (let i = 0; i < 15000; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = -Math.random() * 2000;
+            starsVertices.push(x, y, z);
+        }
+
+        starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
+        const starField = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starField);
+
+        // Hullócsillagok létrehozása
+        const shootingStars = [];
+        for (let i = 0; i < 50; i++) {
+            const geometry = new THREE.BufferGeometry();
+            const positions = new Float32Array(6);
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const shootingStar = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 }));
+            shootingStar.visible = false;
+            scene.add(shootingStar);
+            shootingStars.push(shootingStar);
+        }
+
+        camera.position.z = 1;
+
+        // Egér pozíció követése
+        let mouseX = 0;
+        let mouseY = 0;
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Csillagmező mozgatása az egér pozíciója alapján
+            starField.rotation.y += 0.0005;
+            starField.rotation.x = mouseY * 0.2;
+            starField.rotation.y = mouseX * 0.2;
+
+            // Csillagok ragyogása
+            const positions = starField.geometry.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                const scale = Math.random() * 0.5 + 0.5;
+                starsMaterial.size = scale * 0.2;
+            }
+            starField.geometry.attributes.position.needsUpdate = true;
+
+            // Hullócsillagok animálása
+            shootingStars.forEach(star => {
+                if (star.visible) {
+                    const positions = star.geometry.attributes.position.array;
+                    positions[0] += 4;
+                    positions[1] -= 4;
+                    positions[3] += 4;
+                    positions[4] -= 4;
+                    star.geometry.attributes.position.needsUpdate = true;
+
+                    if (positions[0] > 1000) {
+                        star.visible = false;
+                    }
+                } else if (Math.random() < 0.03) {
+                    const x = Math.random() * 2000 - 1000;
+                    const y = Math.random() * 1000 + 500;
+                    const positions = star.geometry.attributes.position.array;
+                    positions[0] = x;
+                    positions[1] = y;
+                    positions[2] = -1000;
+                    positions[3] = x + 100;
+                    positions[4] = y - 100;
+                    positions[5] = -1000;
+                    star.geometry.attributes.position.needsUpdate = true;
+                    star.visible = true;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Tier Maker kód
+        let tiers = ['S', 'A', 'B', 'C', 'D'];
+        const tierList = document.getElementById('tier-list');
+        const itemsContainer = document.getElementById('items-container');
+        const tierInput = document.getElementById('tier-input');
+        const addTierBtn = document.getElementById('add-tier-btn');
+
+        const games = [
+            { name: "The Legend of Zelda: Breath of the Wild", logo: "https://upload.wikimedia.org/wikipedia/en/c/c6/The_Legend_of_Zelda_Breath_of_the_Wild.jpg" },
+            { name: "Red Dead Redemption 2", logo: "https://upload.wikimedia.org/wikipedia/en/4/44/Red_Dead_Redemption_II.jpg" },
+            { name: "The Witcher 3: Wild Hunt", logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Witcher_3_cover_art.jpg" },
+            { name: "Grand Theft Auto V", logo: "https://upload.wikimedia.org/wikipedia/en/a/a5/Grand_Theft_Auto_V.png" },
+            { name: "God of War (2018)", logo: "https://upload.wikimedia.org/wikipedia/en/a/a7/God_of_War_4_cover.jpg" },
+            { name: "Minecraft", logo: "https://upload.wikimedia.org/wikipedia/en/5/51/Minecraft_cover.png" },
+            { name: "Fortnite", logo: "https://upload.wikimedia.org/wikipedia/commons/7/7c/Fortnite_F_lettermark_logo.png" },
+            { name: "Super Mario Odyssey", logo: "https://upload.wikimedia.org/wikipedia/en/8/8d/Super_Mario_Odyssey.jpg" },
+            { name: "The Last of Us", logo: "https://upload.wikimedia.org/wikipedia/en/4/46/Video_Game_Cover_-_The_Last_of_Us.jpg" },
+            { name: "Overwatch", logo: "https://upload.wikimedia.org/wikipedia/commons/5/55/Overwatch_circle_logo.svg" },
+            // ... további játékok hozzáadása
+        ];
+
+        function renderTiers() {
+            const currentTierContents = {};
+            document.querySelectorAll('.tier-row').forEach(tierRow => {
+                const tierName = tierRow.querySelector('input').value;
+                const items = Array.from(tierRow.querySelector('.tier-content').children);
+                currentTierContents[tierName] = items;
+            });
+
+            tierList.innerHTML = '';
+            tiers.forEach((tier, index) => {
+                const tierRow = document.createElement('div');
+                tierRow.className = 'tier-row flex items-center bg-white bg-opacity-20 p-2 rounded shadow mb-2 fade-in';
+                tierRow.draggable = true;
+                tierRow.ondragstart = dragTier;
+                tierRow.ondragend = dragEndTier;
+                tierRow.ondragover = dragOverTier;
+                tierRow.ondragleave = dragLeaveTier;
+                tierRow.ondrop = dropTier;
+                tierRow.innerHTML = `
+                    <input class="w-20 h-12 text-center text-2xl font-bold bg-gray-800 text-white rounded mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500" value="${tier}" onchange="updateTierName(${index}, this.value)">
+                    <div class="tier-content flex-grow min-h-[3rem] bg-gray-700 rounded p-2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                    <button onclick="removeTier(${index})" class="ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition duration-300">X</button>
+                `;
+                tierList.appendChild(tierRow);
+
+                // Visszaállítjuk a tier tartalmát
+                if (currentTierContents[tier]) {
+                    const tierContent = tierRow.querySelector('.tier-content');
+                    currentTierContents[tier].forEach(item => tierContent.appendChild(item));
+                }
+            });
+        }
+
+        function updateTierName(index, newName) {
+            tiers[index] = newName;
+        }
+
+        function createItem(game) {
+            const item = document.createElement('div');
+            item.id = 'item-' + game.name.replace(/\s+/g, '-').toLowerCase();
+            item.className = `item bg-blue-500 text-white p-2 m-1 rounded cursor-move flex items-center justify-center fade-in`;
+            item.style.width = '100px';
+            item.style.height = '100px';
+            item.draggable = true;
+            item.ondragstart = drag;
+            item.innerHTML = `
+                <img src="${game.logo}" alt="${game.name}" title="${game.name}" class="w-full h-full object-cover rounded" draggable="false">
+                <div class="delete-btn" onclick="deleteItem(this)">X</div>
+            `;
+            itemsContainer.appendChild(item);
+        }
+
+        function deleteItem(deleteBtn) {
+            const item = deleteBtn.parentElement;
+            const game = games.find(g => g.name === item.querySelector('img').alt);
+            item.remove();
+            createItem(game);
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text", ev.target.id);
+            ev.target.classList.add('opacity-50');
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const draggedElement = document.getElementById(data);
+            draggedElement.classList.remove('opacity-50');
+            
+            if (ev.target.classList.contains('tier-content')) {
+                ev.target.appendChild(draggedElement);
+            } else if (ev.target.closest('.tier-content')) {
+                ev.target.closest('.tier-content').appendChild(draggedElement);
+            } else if (ev.target.id === 'items-container') {
+                ev.target.appendChild(draggedElement);
+            }
+        }
+
+        function dragTier(ev) {
+            ev.dataTransfer.setData("text/tier", ev.target.querySelector('input').value);
+            ev.target.classList.add('dragging');
+        }
+
+        function dragEndTier(ev) {
+            ev.target.classList.remove('dragging');
+            document.querySelectorAll('.tier-row').forEach(row => {
+                row.classList.remove('drag-above', 'drag-below');
+            });
+        }
+
+        function dragOverTier(ev) {
+            ev.preventDefault();
+            const draggedTier = ev.dataTransfer.getData("text/tier");
+            if (draggedTier && draggedTier !== ev.currentTarget.querySelector('input').value) {
+                const rect = ev.currentTarget.getBoundingClientRect();
+                const midpoint = (rect.bottom + rect.top) / 2;
+                
+                document.querySelectorAll('.tier-row').forEach(row => {
+                    row.classList.remove('drag-above', 'drag-below');
+                });
+
+                if (ev.clientY < midpoint) {
+                    ev.currentTarget.classList.add('drag-above');
+                } else {
+                    ev.currentTarget.classList.add('drag-below');
+                }
+            }
+        }
+
+        function dragLeaveTier(ev) {
+            ev.currentTarget.classList.remove('drag-above', 'drag-below');
+        }
+
+        function dropTier(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text/tier");
+            const fromIndex = tiers.indexOf(data);
+            const toIndex = tiers.indexOf(ev.currentTarget.querySelector('input').value);
+            
+            if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+                const [removed] = tiers.splice(fromIndex, 1);
+                const insertIndex = ev.currentTarget.classList.contains('drag-below') ? toIndex + 1 : toIndex;
+                tiers.splice(insertIndex, 0, removed);
+                renderTiers();
+            }
+
+            document.querySelectorAll('.tier-row').forEach(row => {
+                row.classList.remove('drag-above', 'drag-below');
+            });
+        }
+
+        function addTier() {
+            const tierName = tierInput.value.trim();
+            if (tierName && !tiers.includes(tierName)) {
+                tiers.push(tierName);
+                renderTiers();
+                tierInput.value = '';
+            }
+        }
+
+        function removeTier(index) {
+            const tierContent = tierList.children[index].querySelector('.tier-content');
+            if (tierContent.children.length > 0) {
+                if (confirm('Ez a tier tartalmaz elemeket. Biztosan el szeretnéd távolítani?')) {
+                    Array.from(tierContent.children).forEach(item => itemsContainer.appendChild(item));
+                    tiers.splice(index, 1);
+                    renderTiers();
+                }
+            } else {
+                tiers.splice(index, 1);
+                renderTiers();
+            }
+        }
+
+        addTierBtn.addEventListener('click', addTier);
+        tierInput.addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                addTier();
+            }
+        });
+
+        // Játékok hozzáadása
+        games.forEach(game => createItem(game));
+
+        renderTiers();
+
+        // Képek húzásának megakadályozása
+        document.addEventListener('dragstart', function(event) {
+            if (event.target.tagName.toLowerCase() === 'img') {
+                event.preventDefault();
+            }
+        });
+
+        // Háttér méretezése görgetéskor
+        function resizeBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const contentHeight = document.body.scrollHeight;
+            canvas.style.height = contentHeight + 'px';
+        }
+
+        window.addEventListener('load', resizeBackground);
+        window.addEventListener('resize', resizeBackground);
+        new MutationObserver(resizeBackground).observe(document.body, { childList: true, subtree: true });
+    </script>
 </body>
 </html>
