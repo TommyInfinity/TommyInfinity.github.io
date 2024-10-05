@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RMC Tier Maker</title>
+    <title>Fejlett Tier Maker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
@@ -47,18 +47,94 @@
         .tier-row.drag-above { margin-top: 2rem; }
         .tier-row.drag-below { margin-bottom: 2rem; }
         .tier-content { display: flex; flex-wrap: wrap; align-items: center; }
+        .color-picker { 
+            width: 30px; 
+            height: 30px; 
+            padding: 0; 
+            border: none; 
+            cursor: pointer;
+        }
+        .stamp {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 24px;
+            font-weight: bold;
+            color: rgba(255, 0, 0, 0.8);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            animation: stampEffect 0.5s ease-out;
+            border: 4px solid red;
+            border-radius: 50%;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .stamp::before,
+        .stamp::after {
+            content: "RMC Group Inc.";
+            font-size: 12px;
+            position: absolute;
+        }
+        .stamp::before {
+            top: 10px;
+            transform: rotate(-15deg);
+        }
+        .stamp::after {
+            bottom: 10px;
+            transform: rotate(15deg);
+        }
+        @keyframes stampEffect {
+            0% { transform: translate(-50%, -50%) rotate(-30deg) scale(2); opacity: 0; }
+            50% { transform: translate(-50%, -50%) rotate(-30deg) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) rotate(-30deg) scale(1); opacity: 0.8; }
+        }
     </style>
 </head>
 <body class="bg-black">
     <canvas id="bg-canvas"></canvas>
     <div class="content-wrapper">
         <div class="container mx-auto p-4">
-            <h1 class="text-3xl font-bold mb-4 text-center text-white">RMC Tier Maker</h1>
-            <div id="items-container" class="flex flex-wrap mb-4 p-2 bg-white bg-opacity-20 rounded min-h-[50px] shadow-md" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            <div id="tier-list" class="space-y-4"></div>
-            <div class="mt-4 flex justify-center">
-                <input id="tier-input" type="text" class="p-2 border rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Új tier neve">
-                <button id="add-tier-btn" class="bg-green-500 text-white p-2 rounded-r hover:bg-green-600 transition duration-300">Új Tier</button>
+            <h1 class="text-3xl font-bold mb-4 text-center text-white">Fejlett Tier Maker</h1>
+            <div class="flex justify-center mb-4">
+                <button id="normal-mode-btn" class="bg-blue-500 text-white p-2 rounded mr-2">Normál mód</button>
+                <button id="blind-mode-btn" class="bg-green-500 text-white p-2 rounded">Vak mód</button>
+            </div>
+            <div id="normal-mode">
+                <div id="items-container" class="flex flex-wrap mb-4 p-2 bg-white bg-opacity-20 rounded min-h-[50px] shadow-md" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div id="tier-list" class="space-y-4"></div>
+                <div class="mt-4 flex justify-center">
+                    <input id="tier-input" type="text" class="p-2 border rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Új tier neve">
+                    <button id="add-tier-btn" class="bg-green-500 text-white p-2 rounded-r hover:bg-green-600 transition duration-300">Új Tier</button>
+                </div>
+            </div>
+            <div id="blind-mode" class="hidden">
+                <div id="blind-game-display" class="flex flex-col items-center mb-4">
+                    <div class="relative">
+                        <img id="blind-game-image" src="" alt="" class="w-64 h-64 object-cover mb-4">
+                        <div id="blind-game-stamp" class="stamp"></div>
+                    </div>
+                    <h2 id="blind-game-name" class="text-2xl font-bold text-white mb-4"></h2>
+                    <div id="blind-tier-buttons" class="flex flex-wrap justify-center"></div>
+                </div>
+                <div class="flex justify-center">
+                    <button id="blind-finish-btn" class="bg-yellow-500 text-white p-2 rounded mr-2">Végeztem!</button>
+                    <button id="blind-restart-btn" class="bg-red-500 text-white p-2 rounded">Újra</button>
+                </div>
+            </div>
+            <div id="blind-result" class="hidden mt-4">
+                <div id="blind-tier-list" class="space-y-4"></div>
+                <div class="flex justify-center mt-4">
+                    <button id="blind-edit-btn" class="bg-blue-500 text-white p-2 rounded mr-2">Szerkesztés</button>
+                    <button id="blind-back-btn" class="bg-green-500 text-white p-2 rounded">Vissza a vak módhoz</button>
+                </div>
             </div>
         </div>
     </div>
@@ -169,13 +245,33 @@
         });
 
         // Tier Maker kód
-        let tiers = ['S', 'A', 'B', 'C', 'D'];
+        let tiers = [
+            { name: 'S', color: '#FF0000' },
+            { name: 'A', color: '#FF7F00' },
+            { name: 'B', color: '#FFFF00' },
+            { name: 'C', color: '#00FF00' },
+            { name: 'D', color: '#0000FF' }
+        ];
         const tierList = document.getElementById('tier-list');
         const itemsContainer = document.getElementById('items-container');
         const tierInput = document.getElementById('tier-input');
         const addTierBtn = document.getElementById('add-tier-btn');
+        const normalModeBtn = document.getElementById('normal-mode-btn');
+        const blindModeBtn = document.getElementById('blind-mode-btn');
+        const normalMode = document.getElementById('normal-mode');
+        const blindMode = document.getElementById('blind-mode');
+        const blindResult = document.getElementById('blind-result');
+        const blindGameImage = document.getElementById('blind-game-image');
+        const blindGameName = document.getElementById('blind-game-name');
+        const blindGameStamp = document.getElementById('blind-game-stamp');
+        const blindTierButtons = document.getElementById('blind-tier-buttons');
+        const blindFinishBtn = document.getElementById('blind-finish-btn');
+        const blindRestartBtn = document.getElementById('blind-restart-btn');
+        const blindEditBtn = document.getElementById('blind-edit-btn');
+        const blindBackBtn = document.getElementById('blind-back-btn');
+        const blindTierList = document.getElementById('blind-tier-list');
 
-        const games = [
+        let games = [
             { name: "The Legend of Zelda: Breath of the Wild", logo: "https://upload.wikimedia.org/wikipedia/en/c/c6/The_Legend_of_Zelda_Breath_of_the_Wild.jpg" },
             { name: "Red Dead Redemption 2", logo: "https://upload.wikimedia.org/wikipedia/en/4/44/Red_Dead_Redemption_II.jpg" },
             { name: "The Witcher 3: Wild Hunt", logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Witcher_3_cover_art.jpg" },
@@ -186,197 +282,403 @@
             { name: "Super Mario Odyssey", logo: "https://upload.wikimedia.org/wikipedia/en/8/8d/Super_Mario_Odyssey.jpg" },
             { name: "The Last of Us", logo: "https://upload.wikimedia.org/wikipedia/en/4/46/Video_Game_Cover_-_The_Last_of_Us.jpg" },
             { name: "Overwatch", logo: "https://upload.wikimedia.org/wikipedia/commons/5/55/Overwatch_circle_logo.svg" },
-            // ... további játékok hozzáadása
         ];
 
-        function renderTiers() {
-            const currentTierContents = {};
-            document.querySelectorAll('.tier-row').forEach(tierRow => {
-                const tierName = tierRow.querySelector('input').value;
-                const items = Array.from(tierRow.querySelector('.tier-content').children);
-                currentTierContents[tierName] = items;
-            });
+        let blindGames = [...games];
+        let blindResults = {};
 
-            tierList.innerHTML = '';
-            tiers.forEach((tier, index) => {
-                const tierRow = document.createElement('div');
-                tierRow.className = 'tier-row flex items-center bg-white bg-opacity-20 p-2 rounded shadow mb-2 fade-in';
-                tierRow.draggable = true;
-                tierRow.ondragstart = dragTier;
-                tierRow.ondragend = dragEndTier;
-                tierRow.ondragover = dragOverTier;
-                tierRow.ondragleave = dragLeaveTier;
-                tierRow.ondrop = dropTier;
-                tierRow.innerHTML = `
-                    <input class="w-20 h-12 text-center text-2xl font-bold bg-gray-800 text-white rounded mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500" value="${tier}" onchange="updateTierName(${index}, this.value)">
-                    <div class="tier-content flex-grow min-h-[3rem] bg-gray-700 rounded p-2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-                    <button onclick="removeTier(${index})" class="ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition duration-300">X</button>
-                `;
-                tierList.appendChild(tierRow);
-
-                // Visszaállítjuk a tier tartalmát
-                if (currentTierContents[tier]) {
-                    const tierContent = tierRow.querySelector('.tier-content');
-                    currentTierContents[tier].forEach(item => tierContent.appendChild(item));
-                }
-            });
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random()*16777215).toString(16);
         }
 
-        function updateTierName(index, newName) {
-            tiers[index] = newName;
+function renderTiers() {
+    const currentTierContents = {};
+    document.querySelectorAll('.tier-row').forEach(tierRow => {
+        const tierName = tierRow.querySelector('input').value;
+        const items = Array.from(tierRow.querySelector('.tier-content').children);
+        currentTierContents[tierName] = items;
+    });
+
+    tierList.innerHTML = '';
+    tiers.forEach((tier, index) => {
+        const tierRow = document.createElement('div');
+        tierRow.className = 'tier-row flex items-center p-2 rounded shadow mb-2 fade-in';
+        tierRow.style.backgroundColor = tier.color;
+        tierRow.draggable = true;
+        tierRow.ondragstart = dragTier;
+        tierRow.ondragend = dragEndTier;
+        tierRow.ondragover = dragOverTier;
+        tierRow.ondragleave = dragLeaveTier;
+        tierRow.ondrop = dropTier;
+        tierRow.innerHTML = `
+            <input class="w-20 h-12 text-center text-2xl font-bold bg-gray-800 text-white rounded mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500" value="${tier.name}" onchange="updateTierName(${index}, this.value)">
+            <input type="color" class="color-picker mr-2" value="${tier.color}" onchange="updateTierColor(${index}, this.value)">
+            <div class="tier-content flex-grow min-h-[3rem] bg-gray-700 rounded p-2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+            <button onclick="removeTier(${index})" class="ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition duration-300">X</button>
+        `;
+        tierList.appendChild(tierRow);
+
+        // Visszaállítjuk a tier tartalmát
+        if (currentTierContents[tier.name]) {
+            const tierContent = tierRow.querySelector('.tier-content');
+            currentTierContents[tier.name].forEach(item => tierContent.appendChild(item));
         }
+    });
+}
 
-        function createItem(game) {
-            const item = document.createElement('div');
-            item.id = 'item-' + game.name.replace(/\s+/g, '-').toLowerCase();
-            item.className = `item bg-blue-500 text-white p-2 m-1 rounded cursor-move flex items-center justify-center fade-in`;
-            item.style.width = '100px';
-            item.style.height = '100px';
-            item.draggable = true;
-            item.ondragstart = drag;
-            item.innerHTML = `
-                <img src="${game.logo}" alt="${game.name}" title="${game.name}" class="w-full h-full object-cover rounded" draggable="false">
-                <div class="delete-btn" onclick="deleteItem(this)">X</div>
-            `;
-            itemsContainer.appendChild(item);
-        }
+function updateTierName(index, newName) {
+    tiers[index].name = newName;
+}
 
-        function deleteItem(deleteBtn) {
-            const item = deleteBtn.parentElement;
-            const game = games.find(g => g.name === item.querySelector('img').alt);
-            item.remove();
-            createItem(game);
-        }
+function updateTierColor(index, newColor) {
+    tiers[index].color = newColor;
+    renderTiers();
+}
 
-        function allowDrop(ev) {
-            ev.preventDefault();
-        }
+function createItem(game) {
+    const item = document.createElement('div');
+    item.id = 'item-' + game.name.replace(/\s+/g, '-').toLowerCase();
+    item.className = `item bg-blue-500 text-white p-2 m-1 rounded cursor-move flex items-center justify-center fade-in`;
+    item.style.width = '100px';
+    item.style.height = '100px';
+    item.draggable = true;
+    item.ondragstart = drag;
+    item.innerHTML = `
+        <img src="${game.logo}" alt="${game.name}" title="${game.name}" class="w-full h-full object-cover rounded" draggable="false">
+        <div class="delete-btn" onclick="deleteItem(this)">X</div>
+    `;
+    itemsContainer.appendChild(item);
+}
 
-        function drag(ev) {
-            ev.dataTransfer.setData("text", ev.target.id);
-            ev.target.classList.add('opacity-50');
-        }
+function deleteItem(deleteBtn) {
+    const item = deleteBtn.parentElement;
+    const game = games.find(g => g.name === item.querySelector('img').alt);
+    item.remove();
+    createItem(game);
+}
 
-        function drop(ev) {
-            ev.preventDefault();
-            const data = ev.dataTransfer.getData("text");
-            const draggedElement = document.getElementById(data);
-            draggedElement.classList.remove('opacity-50');
-            
-            if (ev.target.classList.contains('tier-content')) {
-                ev.target.appendChild(draggedElement);
-            } else if (ev.target.closest('.tier-content')) {
-                ev.target.closest('.tier-content').appendChild(draggedElement);
-            } else if (ev.target.id === 'items-container') {
-                ev.target.appendChild(draggedElement);
-            }
-        }
+function allowDrop(ev) {
+    ev.preventDefault();
+}
 
-        function dragTier(ev) {
-            ev.dataTransfer.setData("text/tier", ev.target.querySelector('input').value);
-            ev.target.classList.add('dragging');
-        }
+function drag(ev) {
+    ev.dataTransfer.setData("text", ev.target.id);
+    ev.target.classList.add('opacity-50');
+}
 
-        function dragEndTier(ev) {
-            ev.target.classList.remove('dragging');
-            document.querySelectorAll('.tier-row').forEach(row => {
-                row.classList.remove('drag-above', 'drag-below');
-            });
-        }
+function drop(ev) {
+    ev.preventDefault();
+    const data = ev.dataTransfer.getData("text");
+    const draggedElement = document.getElementById(data);
+    draggedElement.classList.remove('opacity-50');
+    
+    if (ev.target.classList.contains('tier-content')) {
+        ev.target.appendChild(draggedElement);
+    } else if (ev.target.closest('.tier-content')) {
+        ev.target.closest('.tier-content').appendChild(draggedElement);
+    } else if (ev.target.id === 'items-container') {
+        ev.target.appendChild(draggedElement);
+    }
+}
 
-        function dragOverTier(ev) {
-            ev.preventDefault();
-            const draggedTier = ev.dataTransfer.getData("text/tier");
-            if (draggedTier && draggedTier !== ev.currentTarget.querySelector('input').value) {
-                const rect = ev.currentTarget.getBoundingClientRect();
-                const midpoint = (rect.bottom + rect.top) / 2;
-                
-                document.querySelectorAll('.tier-row').forEach(row => {
-                    row.classList.remove('drag-above', 'drag-below');
-                });
+function dragTier(ev) {
+    ev.dataTransfer.setData("text/tier", ev.target.querySelector('input').value);
+    ev.target.classList.add('dragging');
+}
 
-                if (ev.clientY < midpoint) {
-                    ev.currentTarget.classList.add('drag-above');
-                } else {
-                    ev.currentTarget.classList.add('drag-below');
-                }
-            }
-        }
+function dragEndTier(ev) {
+    ev.target.classList.remove('dragging');
+    document.querySelectorAll('.tier-row').forEach(row => {
+        row.classList.remove('drag-above', 'drag-below');
+    });
+}
 
-        function dragLeaveTier(ev) {
-            ev.currentTarget.classList.remove('drag-above', 'drag-below');
-        }
-
-        function dropTier(ev) {
-            ev.preventDefault();
-            const data = ev.dataTransfer.getData("text/tier");
-            const fromIndex = tiers.indexOf(data);
-            const toIndex = tiers.indexOf(ev.currentTarget.querySelector('input').value);
-            
-            if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
-                const [removed] = tiers.splice(fromIndex, 1);
-                const insertIndex = ev.currentTarget.classList.contains('drag-below') ? toIndex + 1 : toIndex;
-                tiers.splice(insertIndex, 0, removed);
-                renderTiers();
-            }
-
-            document.querySelectorAll('.tier-row').forEach(row => {
-                row.classList.remove('drag-above', 'drag-below');
-            });
-        }
-
-        function addTier() {
-            const tierName = tierInput.value.trim();
-            if (tierName && !tiers.includes(tierName)) {
-                tiers.push(tierName);
-                renderTiers();
-                tierInput.value = '';
-            }
-        }
-
-        function removeTier(index) {
-            const tierContent = tierList.children[index].querySelector('.tier-content');
-            if (tierContent.children.length > 0) {
-                if (confirm('Ez a tier tartalmaz elemeket. Biztosan el szeretnéd távolítani?')) {
-                    Array.from(tierContent.children).forEach(item => itemsContainer.appendChild(item));
-                    tiers.splice(index, 1);
-                    renderTiers();
-                }
-            } else {
-                tiers.splice(index, 1);
-                renderTiers();
-            }
-        }
-
-        addTierBtn.addEventListener('click', addTier);
-        tierInput.addEventListener('keyup', function(event) {
-            if (event.key === 'Enter') {
-                addTier();
-            }
+function dragOverTier(ev) {
+    ev.preventDefault();
+    const draggedTier = ev.dataTransfer.getData("text/tier");
+    if (draggedTier && draggedTier !== ev.currentTarget.querySelector('input').value) {
+        const rect = ev.currentTarget.getBoundingClientRect();
+        const midpoint = (rect.bottom + rect.top) / 2;
+        
+        document.querySelectorAll('.tier-row').forEach(row => {
+            row.classList.remove('drag-above', 'drag-below');
         });
 
-        // Játékok hozzáadása
-        games.forEach(game => createItem(game));
+        if (ev.clientY < midpoint) {
+            ev.currentTarget.classList.add('drag-above');
+        } else {
+            ev.currentTarget.classList.add('drag-below');
+        }
+    }
+}
 
+function dragLeaveTier(ev) {
+    ev.currentTarget.classList.remove('drag-above', 'drag-below');
+}
+
+function dropTier(ev) {
+    ev.preventDefault();
+    const data = ev.dataTransfer.getData("text/tier");
+    const fromIndex = tiers.findIndex(t => t.name === data);
+    const toIndex = tiers.findIndex(t => t.name === ev.currentTarget.querySelector('input').value);
+    
+    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+        const [removed] = tiers.splice(fromIndex, 1);
+        const insertIndex = ev.currentTarget.classList.contains('drag-below') ? toIndex + 1 : toIndex;
+        tiers.splice(insertIndex, 0, removed);
         renderTiers();
+    }
 
-        // Képek húzásának megakadályozása
-        document.addEventListener('dragstart', function(event) {
-            if (event.target.tagName.toLowerCase() === 'img') {
-                event.preventDefault();
-            }
-        });
+    document.querySelectorAll('.tier-row').forEach(row => {
+        row.classList.remove('drag-above', 'drag-below');
+    });
+}
 
-        // Háttér méretezése görgetéskor
-        function resizeBackground() {
-            const canvas = document.getElementById('bg-canvas');
-            const contentHeight = document.body.scrollHeight;
-            canvas.style.height = contentHeight + 'px';
+function addTier() {
+    const tierName = tierInput.value.trim();
+    if (tierName && !tiers.some(t => t.name === tierName)) {
+        tiers.push({ name: tierName, color: getRandomColor() });
+        renderTiers();
+        tierInput.value = '';
+    }
+}
+
+function removeTier(index) {
+    const tierContent = tierList.children[index].querySelector('.tier-content');
+    if (tierContent.children.length > 0) {
+        if (confirm('Ez a tier tartalmaz elemeket. Biztosan el szeretnéd távolítani?')) {
+            Array.from(tierContent.children).forEach(item => itemsContainer.appendChild(item));
+            tiers.splice(index, 1);
+            renderTiers();
         }
+    } else {
+        tiers.splice(index, 1);
+        renderTiers();
+    }
+}
 
-        window.addEventListener('load', resizeBackground);
-        window.addEventListener('resize', resizeBackground);
-        new MutationObserver(resizeBackground).observe(document.body, { childList: true, subtree: true });
-    </script>
+function startBlindMode() {
+    blindGames = [...games];
+    blindResults = {};
+    showNextBlindGame();
+}
+
+function showNextBlindGame() {
+    const seal = document.getElementById('blind-game-stamp');
+     seal.classList.add('hidden');
+    if (blindGames.length > 0) {
+        const game = blindGames.pop();
+        blindGameImage.src = game.logo;
+        blindGameName.textContent = game.name;
+        blindGameStamp.textContent = '';
+        renderBlindTierButtons();
+    } else {
+        finishBlindMode();
+    }
+}
+
+function renderBlindTierButtons() {
+    blindTierButtons.innerHTML = '';
+    tiers.forEach(tier => {
+        const button = document.createElement('button');
+        button.textContent = tier.name;
+        button.className = 'bg-gray-500 text-white p-2 m-1 rounded hover:bg-gray-600 transition duration-300';
+        button.style.backgroundColor = tier.color;
+        button.onclick = () => selectBlindTier(tier.name);
+        blindTierButtons.appendChild(button);
+    });
+}
+
+function selectBlindTier(tierName) {
+    const gameName = blindGameName.textContent;
+    if (!blindResults[tierName]) {
+        blindResults[tierName] = [];
+    }
+    blindResults[tierName].push(gameName);
+    showSeal(tierName);
+    
+    // Pecsét effektus hozzáadása
+    blindGameStamp.textContent = tierName;
+    blindGameStamp.style.animation = 'none';
+    blindGameStamp.offsetHeight; // Trigger reflow
+    blindGameStamp.style.animation = null;
+    
+    setTimeout(() => {
+        showNextBlindGame();
+    }, 1000); // 1 másodperc késleltetés a következő játék megjelenítése előtt
+}
+
+function finishBlindMode() {
+    blindMode.classList.add('hidden');
+    blindResult.classList.remove('hidden');
+    renderBlindResults();
+}
+
+function renderBlindResults() {
+    blindTierList.innerHTML = '';
+    tiers.forEach(tier => {
+        if (blindResults[tier.name] && blindResults[tier.name].length > 0) {
+            const tierRow = document.createElement('div');
+            tierRow.className = 'tier-row flex items-center p-2 rounded shadow mb-2 fade-in';
+            tierRow.style.backgroundColor = tier.color;
+            tierRow.innerHTML = `
+                <div class="w-20 h-12 flex items-center justify-center text-2xl font-bold bg-gray-800 text-white rounded mr-4">${tier.name}</div>
+                <div class="tier-content flex-grow min-h-[3rem] bg-gray-700 rounded p-2"></div>
+            `;
+            blindResults[tier.name].forEach(gameName => {
+                const game = games.find(g => g.name === gameName);
+                const item = document.createElement('div');
+                item.className = 'item bg-blue-500 text-white p-2 m-1 rounded flex items-center justify-center';
+                item.style.width = '100px';
+                item.style.height = '100px';
+                item.innerHTML = `<img src="${game.logo}" alt="${game.name}" title="${game.name}" class="w-full h-full object-cover rounded">`;
+                tierRow.querySelector('.tier-content').appendChild(item);
+            });
+            blindTierList.appendChild(tierRow);
+        }
+    });
+}
+
+normalModeBtn.addEventListener('click', () => {
+    normalMode.classList.remove('hidden');
+    blindMode.classList.add('hidden');
+    blindResult.classList.add('hidden');
+});
+
+blindModeBtn.addEventListener('click', () => {
+    normalMode.classList.add('hidden');
+    blindMode.classList.remove('hidden');
+    blindResult.classList.add('hidden');
+    startBlindMode();
+});
+
+blindFinishBtn.addEventListener('click', finishBlindMode);
+
+blindRestartBtn.addEventListener('click', () => {
+    startBlindMode();
+    blindResult.classList.add('hidden');
+    blindMode.classList.remove('hidden');
+});
+
+blindEditBtn.addEventListener('click', () => {
+    normalMode.classList.remove('hidden');
+    blindResult.classList.add('hidden');
+    
+    // Áthelyezzük a játékokat a megfelelő tier-ekbe
+    Object.entries(blindResults).forEach(([tierName, gameNames]) => {
+        const tierRow = Array.from(tierList.children).find(row => row.querySelector('input').value === tierName);
+        if (tierRow) {
+            const tierContent = tierRow.querySelector('.tier-content');
+            gameNames.forEach(gameName => {
+                const item = document.getElementById('item-' + gameName.replace(/\s+/g, '-').toLowerCase());
+                if (item) {
+                    tierContent.appendChild(item);
+                }
+            });
+        }
+    });
+
+    // Eltávolítjuk a játékokat az items-container-ből
+    while (itemsContainer.firstChild) {
+        itemsContainer.removeChild(itemsContainer.firstChild);
+    }
+});
+
+blindBackBtn.addEventListener('click', () => {
+    blindMode.classList.remove('hidden');
+    blindResult.classList.add('hidden');
+    startBlindMode();
+});
+
+addTierBtn.addEventListener('click', addTier);
+tierInput.addEventListener('keyup', function(event) {
+    if (event.key === 'Enter') {
+        addTier();
+    }
+});
+
+// Játékok hozzáadása
+games.forEach(game => createItem(game));
+
+renderTiers();
+
+// Képek húzásának megakadályozása
+document.addEventListener('dragstart', function(event) {
+    if (event.target.tagName.toLowerCase() === 'img') {
+        event.preventDefault();
+    }
+});
+
+// Háttér méretezése görgetéskor
+function resizeBackground() {
+    const canvas = document.getElementById('bg-canvas');
+    const contentHeight = document.body.scrollHeight;
+    canvas.style.height = contentHeight + 'px';
+}
+
+window.addEventListener('load', resizeBackground);
+window.addEventListener('resize', resizeBackground);
+new MutationObserver(resizeBackground).observe(document.body, { childList: true, subtree: true });
+
+// Pecsét megjelenítése tier gombra kattintva
+function showSeal(tierName) {
+  const seal = document.getElementById('blind-game-stamp');
+  seal.innerHTML = `
+    <svg width="100%" height="100%" viewBox="0 0 200 200">
+      <defs>
+        <path id="upperArc" d="M20,100 A80,80 0 0,1 180,100" fill="none" />
+        <path id="lowerArc" d="M180,100 A80,80 0 0,1 20,100" fill="none" />
+      </defs>
+      
+      <!-- Külső kör -->
+      <circle cx="100" cy="100" r="98" stroke="#000000" stroke-width="4" fill="none" />
+      
+      <!-- Belső kör -->
+      <circle cx="100" cy="100" r="80" stroke="#000000" stroke-width="2" fill="none" />
+      
+      <!-- Felső szöveg -->
+      <text font-size="14" font-family="Arial" fill="#000000">
+        <textPath href="#upperArc" startOffset="50%" text-anchor="middle">
+          RMC Group Inc.
+        </textPath>
+      </text>
+      
+      <!-- Alsó szöveg -->
+      <text font-size="14" font-family="Arial" fill="#000000">
+        <textPath href="#lowerArc" startOffset="50%" text-anchor="middle">
+          Tier Maker
+        </textPath>
+      </text>
+      
+      <!-- Középső szöveg (Tier neve) -->
+      <text x="100" y="105" text-anchor="middle" font-size="24" font-weight="bold" font-family="Arial" fill="#000000">
+        ${tierName}
+      </text>
+    </svg>
+  `;
+  seal.classList.remove('hidden');
+}
+
+// Tier gombok eseménykezelője
+blindTierButtons.addEventListener('click', (event) => {
+  if (event.target.tagName === 'BUTTON') {
+    const tierName = event.target.textContent;
+    showSeal(tierName);
+  }
+});
+
+// Vak mód indítása
+function startBlindMode() {
+  blindGames = [...games];
+  blindResults = {};
+  showNextBlindGame();
+  const seal = document.getElementById('blind-game-stamp');
+  seal.classList.add('hidden');
+}
+
+window.addEventListener('load', resizeBackground);
+window.addEventListener('resize', resizeBackground);
+new MutationObserver(resizeBackground).observe(document.body, { childList: true, subtree: true });
+</script>
 </body>
 </html>
