@@ -108,7 +108,7 @@
                 <button id="blind-mode-btn" class="bg-green-500 text-white p-2 rounded">Vak mód</button>
             </div>
             <div id="normal-mode">
-                <div id="items-container" class="flex flex-wrap mb-4 p-2 bg-white bg-opacity-20 rounded min-h-[50px] shadow-md" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                <div id="items-container" class="flex flex-wrap mb-4 p-2 bg-white bg-opacity-20 rounded min-h-[50px] max-h-[300px] overflow-y-auto shadow-md" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
                 <div id="tier-list" class="space-y-4"></div>
                 <div class="mt-4 flex justify-center">
                     <input id="tier-input" type="text" class="p-2 border rounded-l focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Új tier neve">
@@ -282,6 +282,10 @@
             { name: "Super Mario Odyssey", logo: "https://upload.wikimedia.org/wikipedia/en/8/8d/Super_Mario_Odyssey.jpg" },
             { name: "The Last of Us", logo: "https://upload.wikimedia.org/wikipedia/en/4/46/Video_Game_Cover_-_The_Last_of_Us.jpg" },
             { name: "Overwatch", logo: "https://upload.wikimedia.org/wikipedia/commons/5/55/Overwatch_circle_logo.svg" },
+			{ name: "It Takes Two", logo: "https://image.api.playstation.com/vulcan/ap/rnd/202012/0815/IjqyQi0J2PL7GdEo3K8jKWMh.png" },
+			{ name: "Mafia 2", logo: "https://image.api.playstation.com/vulcan/img/cfn/11307ermueQI-IKQbPdGJfotxEaniFPc9X2VEqQr_QKODXtIs_3iE69-Sg0gv2L0wmq4FkGkDFLDAV4u_YZhyt6ngykUl4wE.png" },
+			{ name: "Mafia 3", logo: "https://image.api.playstation.com/cdn/EP1001/CUSA03617_00/DJx1Pb5sQon2SKR1s6RKmAaAllbz2BCG.png" },
+			{ name: "Slient Hill 2", logo: "https://image.api.playstation.com/vulcan/ap/rnd/202210/2000/WJd8SY87zp3xUnCctOrulr5F.png" },
         ];
 
         let blindGames = [...games];
@@ -311,11 +315,14 @@ function renderTiers() {
         tierRow.ondragleave = dragLeaveTier;
         tierRow.ondrop = dropTier;
         tierRow.innerHTML = `
-            <input class="w-20 h-12 text-center text-2xl font-bold bg-gray-800 text-white rounded mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500" value="${tier.name}" onchange="updateTierName(${index}, this.value)">
-            <input type="color" class="color-picker mr-2" value="${tier.color}" onchange="updateTierColor(${index}, this.value)">
-            <div class="tier-content flex-grow min-h-[3rem] bg-gray-700 rounded p-2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
-            <button onclick="removeTier(${index})" class="ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition duration-300">X</button>
-        `;
+			<input class="w-auto min-w-[5rem] max-w-[20rem] h-12 text-center text-2xl font-bold bg-gray-800 text-white rounded mr-4 focus:outline-none focus:ring-2 focus:ring-blue-500 px-2 truncate" 
+           value="${tier.name}" 
+           onchange="updateTierName(${index}, this.value)"
+           title="${tier.name}">
+			<input type="color" class="color-picker mr-2" value="${tier.color}" onchange="updateTierColor(${index}, this.value)">
+			<div class="tier-content flex-grow min-h-[3rem] bg-gray-700 rounded p-2" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+			<button onclick="removeTier(${index})" class="ml-2 bg-red-500 text-white p-2 rounded hover:bg-red-600 transition duration-300">X</button>
+		`;
         tierList.appendChild(tierRow);
 
         // Visszaállítjuk a tier tartalmát
